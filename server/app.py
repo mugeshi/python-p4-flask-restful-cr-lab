@@ -16,11 +16,29 @@ db.init_app(app)
 
 api = Api(app)
 
-class Plants(Resource):
-    pass
+@app.route('/plants', methods=['GET'])
+def index():
+    # Retrieve all plants from the database and convert to JSON format
+    plants = Plant.query.all()
+    plant_list = [plant.to_dict() for plant in plants]
+    return jsonify(plant_list), 200
 
-class PlantByID(Resource):
-    pass
+@app.route('/plants/<int:id>', methods=['GET'])
+def show(id):
+    # Retrieve a specific plant by its ID and convert to JSON format
+    plant = Plant.query.get(id)
+    if not plant:
+        return jsonify({"message": "Plant not found"}), 404
+    return jsonify(plant.to_dict()), 200
+
+@app.route('/plants', methods=['POST'])
+def create():
+    # Create a new plant based on the JSON request data
+    data = request.get_json()
+    new_plant = Plant(**data)
+    db.session.add(new_plant)
+    db.session.commit()
+    return jsonify(new_plant.to_dict()), 201
         
 
 if __name__ == '__main__':
