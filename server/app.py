@@ -16,30 +16,35 @@ db.init_app(app)
 
 api = Api(app)
 
-@app.route('/plants', methods=['GET'])
-def index():
-    # Retrieve all plants from the database and convert to JSON format
-    plants = Plant.query.all()
-    plant_list = [plant.to_dict() for plant in plants]
-    return jsonify(plant_list), 200
+class Plants(Resource):
+    def get(self):
+        plant_dicts = [plant.to_dict() for plant in Plant.query.all()]
+        return make_response(plant_dicts, 200)
 
-@app.route('/plants/<int:id>', methods=['GET'])
-def show(id):
-    # Retrieve a specific plant by its ID and convert to JSON format
-    plant = Plant.query.get(id)
-    if not plant:
-        return jsonify({"message": "Plant not found"}), 404
-    return jsonify(plant.to_dict()), 200
+    def post(self):
+        data = request.get_json()
+        new_plant = Plant(
+            name=data.get('name'),
+            image=data.get('image'),
+            price=data.get('price')
+        )
+        db.session.add(new_plant)
+        db.session.commit()
+        new_plant_dict = new_plant.to_dict()
+        return make_response(new_plant_dict, 201)
 
-@app.route('/plants', methods=['POST'])
-def create():
-    # Create a new plant based on the JSON request data
-    data = request.get_json()
-    new_plant = Plant(**data)
-    db.session.add(new_plant)
-    db.session.commit()
-    return jsonify(new_plant.to_dict()), 201
-        
+
+api.add_resource(Plants, '/plants')
+
+
+class PlantByID(Resource):
+    def get(self, id):
+        plant = (Plant.query.filter_by(id = id).first())
+        plant_dict = plant.to_dict()
+        return make_response(plant_dict, 200)
+
+
+api.add_resource(PlantByID, '/plants/<int:id>')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
